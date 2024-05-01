@@ -1,94 +1,62 @@
-import Image from "next/image";
+'use client'
+
+import { BeaconEvent } from "@airgap/beacon-dapp";
+import { BeaconWallet } from '@taquito/beacon-wallet';
+import { TezosToolkit } from '@taquito/taquito';
+import { Fragment, useEffect, useRef, useState } from "react";
 import styles from "./page.module.css";
 
+const options = {
+  name: 'MyAwesomeDapp',
+  iconUrl: 'https://taquito.io/img/favicon.svg',
+  preferredNetwork: 'ghostnet',
+  eventHandlers: {
+    PERMISSION_REQUEST_SUCCESS: {
+      handler: async (data: any) => {
+        console.log('permission data:', data);
+      },
+    },
+  },
+}
+
+const Tezos = new TezosToolkit('https://YOUR_PREFERRED_RPC_URL');
+
 export default function Home() {
+  const [user, setUser] = useState()
+
+  const wallet = useRef<BeaconWallet>()
+
+  useEffect(() => {
+    wallet.current = new BeaconWallet(options as any)
+    Tezos.setWalletProvider(wallet.current)
+
+    wallet.current.client.subscribeToEvent(BeaconEvent.ACTIVE_ACCOUNT_SET, (payload: any) => {
+      if (!payload) {
+        setUser(undefined)
+        return
+      }
+
+      setUser(payload.address)
+    })
+  }, [])
+
+  async function handleClick() {
+    const response = await wallet.current!.requestPermissions()
+    console.log('requestPermissions:', response)
+  }
+
+  async function handleDisconnect() {
+    await wallet.current!.clearActiveAccount()
+  }
+
   return (
     <main className={styles.main}>
       <div className={styles.description}>
-        <p>
-          Get started by editing&nbsp;
-          <code className={styles.code}>src/app/page.tsx</code>
-        </p>
-        <div>
-          <a
-            href="https://vercel.com?utm_source=create-next-app&utm_medium=appdir-template&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            By{" "}
-            <Image
-              src="/vercel.svg"
-              alt="Vercel Logo"
-              className={styles.vercelLogo}
-              width={100}
-              height={24}
-              priority
-            />
-          </a>
-        </div>
-      </div>
-
-      <div className={styles.center}>
-        <Image
-          className={styles.logo}
-          src="/next.svg"
-          alt="Next.js Logo"
-          width={180}
-          height={37}
-          priority
-        />
-      </div>
-
-      <div className={styles.grid}>
-        <a
-          href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template&utm_campaign=create-next-app"
-          className={styles.card}
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <h2>
-            Docs <span>-&gt;</span>
-          </h2>
-          <p>Find in-depth information about Next.js features and API.</p>
-        </a>
-
-        <a
-          href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template&utm_campaign=create-next-app"
-          className={styles.card}
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <h2>
-            Learn <span>-&gt;</span>
-          </h2>
-          <p>Learn about Next.js in an interactive course with&nbsp;quizzes!</p>
-        </a>
-
-        <a
-          href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template&utm_campaign=create-next-app"
-          className={styles.card}
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <h2>
-            Templates <span>-&gt;</span>
-          </h2>
-          <p>Explore starter templates for Next.js.</p>
-        </a>
-
-        <a
-          href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template&utm_campaign=create-next-app"
-          className={styles.card}
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <h2>
-            Deploy <span>-&gt;</span>
-          </h2>
-          <p>
-            Instantly deploy your Next.js site to a shareable URL with Vercel.
-          </p>
-        </a>
+        {!!user && <Fragment>Connected: {user}</Fragment>}
+        {!user
+          ? <button onClick={handleClick}>Connect</button>
+          : <button onClick={handleDisconnect}>Disconnect</button>
+        }
       </div>
     </main>
   );
