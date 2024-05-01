@@ -19,7 +19,7 @@ const options = {
   },
 }
 
-const Tezos = new TezosToolkit('https://YOUR_PREFERRED_RPC_URL');
+const Tezos = new TezosToolkit('https://ghostnet.ecadinfra.com');
 
 export default function Home() {
   const [user, setUser] = useState()
